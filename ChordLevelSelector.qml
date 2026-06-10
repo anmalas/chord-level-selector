@@ -1,31 +1,27 @@
 //==========================================================================================
 //  Chord Level Select for MuseScore
-//  Has been tested in custom 3.7 branch, 3.6.2,
-//  and to be tested on 4.x
-
-//  Errors or suggestions or whatever @ https://musescore.org/en/node/328754
-//  Maybe I should get a git branch for this thing...
+//  Original: tested in custom 3.7 branch, 3.6.2
+//  This revision: ported to MuseScore 4.x (tested target: 4.7) — Qt 6 / QtQuick.Controls 2
 //
+//  Errors or suggestions or whatever @ https://musescore.org/en/node/328754
 //
 //  This program is free software; you can redistribute it and/or modify
 //  it under the terms of the GNU General Public License version 2
 //  as published by the Free Software Foundation and appearing in
 //  the file LICENCE.GPL
 //===========================================================================================
-import QtQuick 2.1
-import QtQuick.Controls 1.0
-import QtQuick.Controls.Styles 1.4
-import QtQuick.Dialogs 1.1
+import QtQuick 2.15
+import QtQuick.Controls 2.15
+import QtQuick.Layouts 1.15
 import MuseScore 3.0
 
-
 MuseScore {
-    version: "2.0"
-    description: "Select [top/bottom] or any given level between [2-7] of notes from a chord based on their vertical stack (counting from bottom) in chord(s). Aside functionality (which could be its own plugin probably, but why not here: construct chord or a sequence from a range selection. can be useful under certain circumstances."
-    menuPath: "Plugins.Select Chord Levels"
+    version: "4.0"
+    description: "Select [top/bottom] or any given level between [2-7] of notes from a chord based on their vertical stack (counting from bottom) in chord(s). Aside functionality: construct a chord or a sequence from a range selection."
+    title: "Select Chord Levels"
     pluginType: "dialog"
-    width:  445
-    height: 330
+    width:  475
+    height: 360
 
     // Quick Top/Bottom/ 2-7 layers can be selected (only one) by using this plugin and pressing
     // 0 = top
@@ -37,7 +33,11 @@ MuseScore {
 
     function displayMessageDlg(msg) {
         ctrlMessageDialog.text = qsTr(msg);
-        ctrlMessageDialog.visible = true;
+        ctrlMessageDialog.open();
+    }
+
+    function quitPlugin() {
+        (typeof(quit) === 'undefined' ? Qt.quit : quit)()
     }
 
 
@@ -45,89 +45,89 @@ MuseScore {
     // Clicking buttons will keep dialogue open.
 
     Keys.onEscapePressed: { // Keypress
-        (typeof(quit) === 'undefined' ? Qt.quit : quit)()
+        quitPlugin()
     }
 
     // Create Passage from Range
     Keys.onDigit9Pressed: {
         if (createPassageFromRange())
-            (typeof(quit) === 'undefined' ? Qt.quit : quit)()
+            quitPlugin()
     }
 
     // Create Chord from Range
     Keys.onDigit8Pressed: {
         if (createChordFromRange())
-            (typeof(quit) === 'undefined' ? Qt.quit : quit)()
+            quitPlugin()
     }
 
 
     // Keyboard Shortcuts:
     //
     //
-    Keys.onDigit0Pressed: {
+    Keys.onDigit0Pressed: function(event) {
         // Top layer
 
         // [All but Top] if CTRL+0
-        if (event.modifiers && Qt.ControlModifier) {
-               ctrlCheckBoxOmitTop.checkedState = Qt.Checked
-        }  else ctrlCheckBoxLevel1.checkedState = Qt.Checked
+        if (event.modifiers & Qt.ControlModifier) {
+               ctrlCheckBoxOmitTop.checked = true
+        }  else ctrlCheckBoxLevel1.checked = true
 
         if (selectLevels(false, false))
-            (typeof(quit) === 'undefined' ? Qt.quit : quit)()
+            quitPlugin()
 
-        ctrlCheckBoxTopLevel.checkedState = Qt.Unchecked
-        ctrlCheckBoxOmitTop.checkedState = Qt.Unchecked
+        ctrlCheckBoxTopLevel.checked = false
+        ctrlCheckBoxOmitTop.checked = false
     }
-    Keys.onDigit1Pressed: {
+    Keys.onDigit1Pressed: function(event) {
         // Bottom Layer
         // [All but Bottom] if CTRL+1
-        if (event.modifiers && Qt.ControlModifier) {
-            ctrlCheckBoxOmitBottom.checkedState = Qt.Checked
-        }  else ctrlCheckBoxLevel1.checkedState = Qt.Checked
+        if (event.modifiers & Qt.ControlModifier) {
+            ctrlCheckBoxOmitBottom.checked = true
+        }  else ctrlCheckBoxLevel1.checked = true
 
         if (selectLevels(false, false))
-            (typeof(quit) === 'undefined' ? Qt.quit : quit)()
+            quitPlugin()
 
-        ctrlCheckBoxLevel1.checkedState = Qt.Unchecked
-        ctrlCheckBoxOmitBottom.checkedState = Qt.Unchecked
+        ctrlCheckBoxLevel1.checked = false
+        ctrlCheckBoxOmitBottom.checked = false
     }
     Keys.onDigit2Pressed: {
-        ctrlCheckBoxLevel2.checkedState = Qt.Checked
+        ctrlCheckBoxLevel2.checked = true
         if (selectLevels(false, false))
-            (typeof(quit) === 'undefined' ? Qt.quit : quit)()
-        ctrlCheckBoxLevel2.checkedState = Qt.Unchecked
+            quitPlugin()
+        ctrlCheckBoxLevel2.checked = false
     }
     Keys.onDigit3Pressed: {
-        ctrlCheckBoxLevel3.checkedState = Qt.Checked
+        ctrlCheckBoxLevel3.checked = true
         if (selectLevels(false, false))
-            (typeof(quit) === 'undefined' ? Qt.quit : quit)()
-        ctrlCheckBoxLevel3.checkedState = Qt.Unchecked
+            quitPlugin()
+        ctrlCheckBoxLevel3.checked = false
     }
     Keys.onDigit4Pressed: {
-        ctrlCheckBoxLevel4.checkedState = Qt.Checked
+        ctrlCheckBoxLevel4.checked = true
         if (selectLevels(false, false))
-            (typeof(quit) === 'undefined' ? Qt.quit : quit)()
-        ctrlCheckBoxLevel4.checkedState = Qt.Unchecked
+            quitPlugin()
+        ctrlCheckBoxLevel4.checked = false
     }
     Keys.onDigit5Pressed: {
-        ctrlCheckBoxLevel5.checkedState = Qt.Checked
+        ctrlCheckBoxLevel5.checked = true
         if (selectLevels(false, false))
-            (typeof(quit) === 'undefined' ? Qt.quit : quit)()
-        ctrlCheckBoxLevel5.checkedState = Qt.Unchecked
+            quitPlugin()
+        ctrlCheckBoxLevel5.checked = false
     }
     Keys.onDigit6Pressed: {
         // Check for shift (for omit)
-        ctrlCheckBoxOmitTop.checkedState = Qt.Checked
+        ctrlCheckBoxOmitTop.checked = true
         if (selectLevels(false, false))
-            (typeof(quit) === 'undefined' ? Qt.quit : quit)()
-        ctrlCheckBoxOmitTop.checkedState = Qt.Unchecked
+            quitPlugin()
+        ctrlCheckBoxOmitTop.checked = false
     }
     Keys.onDigit7Pressed: {
         // Check for shift (for omit)
-        ctrlCheckBoxOmitBottom.checkedState = Qt.Checked
+        ctrlCheckBoxOmitBottom.checked = true
         if (selectLevels(false, false))
-            (typeof(quit) === 'undefined' ? Qt.quit : quit)()
-        ctrlCheckBoxOmitBottom.checkedState = Qt.Unchecked
+            quitPlugin()
+        ctrlCheckBoxOmitBottom.checked = false
     }
 
 
@@ -140,7 +140,7 @@ MuseScore {
 
         if (!cursor.segment) { // no selection
             console.log("No valid single-staff region selected.");
-            (typeof(quit) === 'undefined' ? Qt.quit : quit)()
+            quitPlugin()
         }
 
         startStaff = cursor.staffIdx;
@@ -272,7 +272,7 @@ MuseScore {
 
         if (!chords.length) {
             displayMessageDlg(qsTr("No valid range selection on current score! Tsk Tsk."));
-            (typeof(quit) === 'undefined' ? Qt.quit : quit)()
+            quitPlugin()
         }
 
         // Copy range selection, then delete it
@@ -444,43 +444,46 @@ MuseScore {
     onRun: {
         console.log("Chord Levels script starting...");
 
-        if (typeof curScore === 'undefined') {
+        if (typeof curScore === 'undefined' || curScore === null) {
             var msg = "Chord Levels exiting without processing - no current score!";
             console.log(msg);
             displayMessageDlg(msg);
-            (typeof(quit) === 'undefined' ? Qt.quit : quit)()
+            quitPlugin()
         }
     }
 
     Rectangle {
-        property alias mouseArea: mouseArea
-        // property alias btnDeleteLevels: btnDeleteLevels
-        property alias btnRevoiceLevels: btnRevoiceLevels
-        property alias btnClose: btnClose
-        property alias ctrlHintLabel: ctrlHintLabel
-        property alias ctrlMessageDialog: ctrlMessageDialog
+        id: rootRect
+        anchors.fill: parent
+        color: sysPalette.window
 
-        width: 500
-        height: 400
-//        color: "#e3e3e3"
+        SystemPalette { id: sysPalette; colorGroup: SystemPalette.Active }
 
-        MessageDialog {
+        // Compact checkbox: trims the large default Controls 2 vertical padding
+        // so rows don't overlap the hint text below.
+        component CompactCheckBox: CheckBox {
+            topPadding: 0
+            bottomPadding: 0
+            implicitHeight: 20
+        }
+
+        // Replacement for the Qt5 MessageDialog (Qt.labs.platform / Dialogs1 no longer available)
+        Dialog {
             id: ctrlMessageDialog
-            icon: StandardIcon.Information
-            title: "Chord Levels Message"
-            text: "Welcome to Chord Levels!"
-            visible: false
-            onAccepted: {
-                visible = false;
+            modal: true
+            title: qsTr("Chord Levels Message")
+            standardButtons: Dialog.Ok
+            anchors.centerIn: parent
+            property alias text: dlgText.text
+            contentItem: Text {
+                id: dlgText
+                text: qsTr("Welcome to Chord Levels!")
+                wrapMode: Text.WordWrap
             }
         }
 
         MouseArea {
             id: mouseArea
-            anchors.rightMargin: 0
-            anchors.bottomMargin: 0
-            anchors.leftMargin: 0
-            anchors.topMargin: 0
             anchors.fill: parent
 
             Text {
@@ -489,70 +492,39 @@ MuseScore {
                 y: 15
                 width: 100
                 font.underline: true
-                text: "Levels:"
+                text: qsTr("Levels:")
             }
 
             Column
             {
                 x: 35
                 y: 35
+                spacing: 0
 
-                CheckBox {
+                CompactCheckBox {
                     id: ctrlCheckBoxTopLevel
-                    style: CheckBoxStyle {
-                        label: Text {
-                            color: "black"
-                            text: qsTr("Top")
-                        }
-                    }
+                    text: qsTr("Top")
                 }
-                CheckBox {
+                CompactCheckBox {
                     id: ctrlCheckBoxLevel5
-                    style: CheckBoxStyle {
-                        label: Text {
-                            color: "black"
-                            text: qsTr("5")
-                        }
-                    }
+                    text: qsTr("5")
                 }
-                CheckBox {
+                CompactCheckBox {
                     id: ctrlCheckBoxLevel4
-                    style: CheckBoxStyle {
-                        label: Text {
-                            color: "black"
-                            text: qsTr("4")
-                        }
-                    }
+                    text: qsTr("4")
                 }
-                CheckBox {
+                CompactCheckBox {
                     id: ctrlCheckBoxLevel3
-                    style: CheckBoxStyle {
-                        label: Text {
-                            color: "black"
-                            text: qsTr("3")
-                        }
-                    }
+                    text: qsTr("3")
                 }
-                CheckBox {
+                CompactCheckBox {
                     id: ctrlCheckBoxLevel2
-                    style: CheckBoxStyle {
-                        label: Text {
-                            color: "black"
-                            text: qsTr("2")
-                        }
-                    }
+                    text: qsTr("2")
                 }
-
-                CheckBox {
+                CompactCheckBox {
                     id: ctrlCheckBoxLevel1
-                    style: CheckBoxStyle {
-                        label: Text {
-                            color: "black"
-                            text: qsTr("Bottom")
-                        }
-                    }
+                    text: qsTr("Bottom")
                 }
-
             }
 
             Text {
@@ -561,7 +533,7 @@ MuseScore {
                 y: 15
                 width: 100
                 font.underline: true
-                text: "Select All, but:"
+                text: qsTr("Select All, but:")
             }
             Text {
                 id: ctrlStackRangeOmitLabel2
@@ -577,14 +549,10 @@ MuseScore {
             {
                 x: 135
                 y: 35
-                CheckBox {
+                spacing: 0
+                CompactCheckBox {
                     id: ctrlCheckBoxOmitTop
-                    style: CheckBoxStyle {
-                        label: Text {
-                            color: "black"
-                            text: qsTr("Omit Top")
-                        }
-                    }
+                    text: qsTr("Omit Top")
                     onCheckedChanged: {
                         if (ctrlCheckBoxOmitTop.checked || ctrlCheckBoxOmitBottom.checked) {
                             ctrlCheckBoxTopLevel.enabled = false;
@@ -604,15 +572,9 @@ MuseScore {
                     }
                 }
 
-                CheckBox {
+                CompactCheckBox {
                     id: ctrlCheckBoxOmitBottom
-                    style: CheckBoxStyle {
-                        label: Text {
-                            color: "black"
-                            text: qsTr("Omit Bottom")
-                        }
-                    }
-
+                    text: qsTr("Omit Bottom")
                     onCheckedChanged: {
                         if (ctrlCheckBoxOmitTop.checked || ctrlCheckBoxOmitBottom.checked) {
                             ctrlCheckBoxTopLevel.enabled = false;
@@ -644,58 +606,27 @@ MuseScore {
                             ctrlCheckBoxLevel4.checked   = false;
                             ctrlCheckBoxLevel5.checked   = false;
                         }
-
                     }
                 }
             }
 
-//            Text {
-//                id: ctrlVoicesLabel
-//                x: 350
-//                y: 95
-//                width: 100
-//                text: "Voice:"
-//            }
-
             ComboBox {
                 id: ctrlComboBoxVoice
-                width: 35
+                width: 50
                 height: 35
                 currentIndex: 1
                 x: 395
                 y: 55
                 model: ListModel {
                     id: cbVoiceItems
-                    ListElement { text: "1"; color: "Blue" }
-                    ListElement { text: "2"; color: "Green" }
-                    ListElement { text: "3"; color: "Brown" }
-                    ListElement { text: "4"; color: "Purple" }
+                    ListElement { text: "1" }
+                    ListElement { text: "2" }
+                    ListElement { text: "3" }
+                    ListElement { text: "4" }
                 }
             }
 
-            /*
             Button {
-                id: btnDeleteLevels
-                x: 280
-                y: 95
-                width: 150
-                height: 35
-                text: qsTr("Delete")
-                onClicked: {
-                    if (selectLevels(false, true)) {
-                        (typeof(quit) === 'undefined' ? Qt.quit : quit)()
-                    }
-                }
-            }
-            */
-
-            Button {
-//                style: ButtonStyle {
-//                        label: Text {
-//                            color: "white"
-//                            text: qsTr("Bottom")
-//                        }
-//                    }
                 id: btnRevoiceLevels
                 x: 280
                 y: 55
@@ -704,7 +635,7 @@ MuseScore {
                 text: qsTr("Revoice")
                 onClicked: {
                     if (selectLevels(true, false)) {
-                        (typeof(quit) === 'undefined' ? Qt.quit : quit)()
+                        quitPlugin()
                     }
                 }
             }
@@ -716,10 +647,10 @@ MuseScore {
                 width: 150
                 height: 35
                 text: qsTr("Select Only")
-                focus: true;
+                focus: true
                 onClicked: {
                     if (selectLevels(false, false)) {
-                        (typeof(quit) === 'undefined' ? Qt.quit : quit)()
+                        quitPlugin()
                     }
                 }
             }
@@ -728,42 +659,24 @@ MuseScore {
             Button {
                 id: btnClose
                 x: 50
-                y: 280
+                y: 307
                 width: 150
                 height: 35
                 text: qsTr("Close")
                 onClicked: {
                     console.log("... exiting Chord Levels Select ...");
-                    (typeof(quit) === 'undefined' ? Qt.quit : quit)()
+                    quitPlugin()
                 }
             }
-
-        /*
-            Button {
-                id: btnCreateChord
-                x: 280
-                y: 135
-                width: 150
-                height: 35
-                text: qsTr("Create Chord")
-                onClicked: {
-                    if (createChordFromRange()) {
-                        (typeof(quit) === 'undefined' ? Qt.quit : quit)()
-                    }
-                }
-            }
-        */
-
 
 
             Text {
                 id: ctrlHintLabel
                 x: 20
-                y: 135
+                y: 160
                 width: 250
                 text: qsTr("Use checkboxes for multiple selection - keyboard shortcuts for one only.\n* Control modifier applies only to top or bottom levels of \"Select all but\"")
                 font.italic: true
-                // color: "black"
                 wrapMode: Text.WordWrap
                 font.pointSize: 10
             }
@@ -776,7 +689,6 @@ MuseScore {
                 text: qsTr("Selection Shortcuts")
                 font.italic: false
                 font.underline: true
-                // color: "black"
                 wrapMode: Text.WordWrap
                 font.pointSize: 10
             }
@@ -784,18 +696,18 @@ MuseScore {
             Text {
                 id: ctrlHintLabel3
                 x: 320
-                y: 135
+                y: 142
                 width: 250
-                text: qsTr("[0]     Top\n[1]     Bottom")
+                text: qsTr("[0]     Top\n[1]     Bottom\n[2-5]  Others")
                 font.italic: false
-                // color: "black"
                 wrapMode: Text.WordWrap
                 font.pointSize: 10
+                lineHeight: 1.1
             }
             Text {
                 id: ctrlHintLabel33
-                x: 310
-                y: 120
+                x: 305
+                y: 122
                 width: 250
                 text: "*"
                 font.italic: false
@@ -805,7 +717,7 @@ MuseScore {
             Text {
                 id: ctrlHintLabel33b
                 x: 320
-                y: 120
+                y: 122
                 width: 250
                 text: "[CTRL Modifier]"
                 font.italic: true
@@ -813,30 +725,14 @@ MuseScore {
                 font.pointSize: 10
             }
 
-
-
-
-            Text {
-                id: ctrlHintLabel333
-                x: 320
-                y: 163
-                width: 250
-                text: qsTr("[2-5]  Others")
-                font.italic: false
-                // color: "black"
-                wrapMode: Text.WordWrap
-                font.pointSize: 10
-            }
-
             Text {
                 id: ctrlHintLabel99
                 x: 298
-                y: 200
+                y: 210
                 width: 250
                 text: qsTr("Formation Shortcuts")
                 font.italic: false
                 font.underline: true
-                // color: "black"
                 wrapMode: Text.WordWrap
                 font.pointSize: 10
             }
@@ -845,36 +741,33 @@ MuseScore {
             Text {
                 id: ctrlHintLabel4a
                 x: 300
-                y: 225
+                y: 237
                 width: 250
                 text: qsTr("[8]")
                 font.italic: false
-                // color: "black"
                 wrapMode: Text.WordWrap
                 font.pointSize: 10
             }
             Button {
                 id: btnFormChord
                 x: 320
-                y: 220
+                y: 232
                 width: 110
                 height: 25
                 text: qsTr("Form Chord")
-                focus: true;
                 onClicked: {
                     if (createChordFromRange())
-                        (typeof(quit) === 'undefined' ? Qt.quit : quit)()
+                        quitPlugin()
                 }
             }
 
             Text {
                 id: ctrlHintLabel4b
                 x: 300
-                y: 255
+                y: 267
                 width: 250
                 text: qsTr("[9]")
                 font.italic: false
-                // color: "black"
                 wrapMode: Text.WordWrap
                 font.pointSize: 10
             }
@@ -882,33 +775,27 @@ MuseScore {
             Button {
                 id: btnFormSequence
                 x: 320
-                y: 250
+                y: 262
                 width: 110
                 height: 25
                 text: qsTr("Form Sequence")
-                focus: true;
                 onClicked: {
                     if (createPassageFromRange())
-                        (typeof(quit) === 'undefined' ? Qt.quit : quit)()
+                        quitPlugin()
                 }
             }
-
-
 
 
             Text {
                 id: ctrlHintLabel5
                 x: 20
-                y: 210
+                y: 232
                 width: 220
                 text: qsTr("Formation shortcuts create a chord (quarter) or passage (eighth) and save results into the clipboard for future pasting.")
                 font.italic: true
-                // color: "black"
                 wrapMode: Text.WordWrap
                 font.pointSize: 10
             }
-
         }
-
     }
 }
